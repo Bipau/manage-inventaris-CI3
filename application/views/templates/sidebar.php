@@ -55,14 +55,14 @@
 
 				<!-- Petugas -->
 				<li class="nav-item">
-					<a href="#" class="nav-link <?= ($this->uri->segment(1) == 'pengaduan') ? 'active' : '' ?>">
+					<a href="<?= base_url('PetugasController/index') ?>" class="nav-link <?= ($this->uri->segment(1) == 'PetugasController') ? 'active' : '' ?>">
 						<i class="nav-icon fas fa-user-alt"></i>
 						<p>Petugas</p>
 					</a>
 				</li>
 				<!-- level -->
 				<li class="nav-item">
-					<a href="#" class="nav-link <?= ($this->uri->segment(1) == 'pengaduan') ? 'active' : '' ?>">
+					<a href="<?= base_url('LevelController/index') ?>" class="nav-link <?= ($this->uri->segment(1) == 'LevelController') ? 'active' : '' ?>">
 						<i class="nav-icon fas fa-user-alt"></i>
 						<p>Level</p>
 					</a>
