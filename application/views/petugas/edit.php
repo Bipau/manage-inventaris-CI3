@@ -71,13 +71,13 @@
                             <div class="form-group">
                                 <label for="foto">Foto</label>
                                 <div class="custom-file">
-                                    <input type="file" class="custom-file-input" id="foto" name="foto" accept=".jpg, .jpeg, .png" required>
+                                    <input type="file" class="custom-file-input" id="foto" name="foto" accept=".jpg, .jpeg, .png">
                                     <label class="custom-file-label" for="foto">Pilih file</label>
                                 </div>
                                 <small class="text-muted">Format: JPG, PNG, JPEG. Max: 2MB</small>
                                 <?php if (!empty($petugas['foto'])): ?>
                                     <div class="mt-2">
-                                        <img src="<?= base_url('uploads/' . $petugas['foto']) ?>" alt="Foto Petugas" class="img-thumbnail" width="100">
+                                        <img src="<?= base_url('assets/img/' . $petugas['foto']) ?>" alt="Foto Petugas" class="img-thumbnail" width="100">
                                     </div>
                                 <?php else: ?>
                                     <small class="text-muted">Belum ada foto.</small>

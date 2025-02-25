@@ -52,14 +52,14 @@ class AuthController extends CI_Controller
 			redirect('DashboardController/render');
 		} else {
 			$this->session->set_flashdata('error', 'Username atau Password salah!');
-			redirect('AuthController  /login');
+			redirect('AuthController/index');
 		}
 	}
-
+	
 	public function logout()
 	{
 		$this->session->sess_destroy();
-		redirect('auth/login');
+		redirect('HomeController/index');
 	}
 }
 

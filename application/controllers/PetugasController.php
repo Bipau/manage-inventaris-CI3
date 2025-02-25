@@ -25,9 +25,19 @@ class PetugasController extends CI_Controller
 	{
 		parent::__construct();
 
+
+        $this->is_logged_in();
+		$this->load->library('session');
 		$this->load->model('Petugas_model', 'petugas');
 		$this->load->model('Level_model', 'level');
 	}
+
+	private function is_logged_in()
+    {
+        if (!$this->session->userdata('logged_in')) {
+            redirect('AuthController/index'); // Redirect ke halaman login
+        }
+    }
 
 	public function index()
 	{
@@ -150,93 +160,87 @@ class PetugasController extends CI_Controller
 		$this->load->library('form_validation');
 
 		// Validation rules
-		$this->form_validation->set_rules('username', 'Username', 'required', [
-			'required' => 'Username harus diisi.'
-		]);
-		$this->form_validation->set_rules('nama_petugas', 'Nama', 'required', [
-			'required' => 'Nama harus diisi.'
-		]);
-		$this->form_validation->set_rules('id_level', 'Level', 'required', [
-			'required' => 'Level harus dipilih.'
-		]);
+		$this->form_validation->set_rules('username', 'Username', 'required');
+		$this->form_validation->set_rules('nama_petugas', 'Nama', 'required');
+		$this->form_validation->set_rules('id_level', 'Level', 'required');
 
-		// Jika password diisi, tambahkan validasi untuk password
-		$password = $this->input->post('password');
-		if (!empty($password)) {
-			$this->form_validation->set_rules('password', 'Password', 'min_length[8]', [
-				'min_length' => 'Password minimal 8 karakter.'
-			]);
-		}
+		$id_petugas = $this->input->post('id_petugas');
 
-		// Jalankan validasi
 		if ($this->form_validation->run() == FALSE) {
-			// Jika validasi gagal, kembalikan ke halaman edit
-			$id_petugas = $this->input->post('id_petugas');
-			$this->session->set_flashdata('error', 'Periksa kembali input Anda.');
-			redirect("PetugasController/Edit/$id_petugas");
+			$data['petugas'] = $this->petugas->getById($id_petugas);
+			$data['level'] = $this->level->index();
+			$this->load->view('templates/header');
+			$this->load->view('templates/sidebar');
+			$this->load->view('petugas/edit', $data);
+			$this->load->view('templates/footer');
 		} else {
-			// Jika validasi berhasil, proses update data
-			$id_petugas = $this->input->post('id_petugas');
-			$username = $this->input->post('username');
-			$nama = $this->input->post('nama_petugas');
-			$level = $this->input->post('id_level');
-			$foto = $_FILES['foto'];
+			// Use the same exact approach as in the CreateAction method
+			// Create new instance of upload library to ensure clean state
+			$this->load->library('upload');
 
-			// Hash password jika ada perubahan
-			$hashed_password = null;
-			if (!empty($password)) {
-				$hashed_password = password_hash($password, PASSWORD_BCRYPT);
-			}
-
-			// Persiapkan data untuk update
+			// Prepare update data
 			$data = [
-				'username' => $username,
-				'nama_petugas' => $nama,
-				'id_level' => $level
+				'username' => $this->input->post('username'),
+				'nama_petugas' => $this->input->post('nama_petugas'),
+				'id_level' => $this->input->post('id_level')
 			];
 
-			// Tambahkan password jika ada perubahan
-			if ($hashed_password) {
-				$data['password'] = $hashed_password;
+			// Handle password if provided
+			$password = $this->input->post('password');
+			if (!empty($password)) {
+				$data['password'] = password_hash($password, PASSWORD_BCRYPT);
 			}
 
-			// Handle upload foto jika ada file baru
-			if ($foto['name'] != '') {
-				$config['upload_path'] = './assets/img';
-				$config['allowed_types'] = 'jpg|png|jpeg|gif';
-				$config['max_size'] = 2048; // 2MB
-				$config['encrypt_name'] = TRUE;
+			// Reset upload config to ensure clean state
+			$config = [
+				'upload_path' => './assets/img/',
+				'allowed_types' => 'jpg|jpeg|png',
+				'max_size' => 2048,
+				'encrypt_name' => TRUE
+			];
 
-				$this->load->library('upload', $config);
+			$this->upload->initialize($config);
 
-				if (!$this->upload->do_upload('foto')) {
-					// Handle upload error
-					$error = $this->upload->display_errors();
-					$this->session->set_flashdata('error', $error);
-					redirect("PetugasController/Edit/$id_petugas");
-				} else {
-					// Jika upload berhasil, ambil nama file baru
-					$new_foto = $this->upload->data('file_name');
+			// Handle photo upload if file is selected
+			if (!empty($_FILES['foto']['name'])) {
+				// Output debug information
+				error_log('Attempting upload: ' . print_r($_FILES['foto'], true));
 
-					// Hapus foto lama jika ada
-					$old_foto = $this->petugas->getById($id_petugas)['foto'];
-					if ($old_foto && file_exists(FCPATH . 'assets/img/' . $old_foto)) {
-						unlink(FCPATH . 'assets/img/' . $old_foto);
+				// Try upload
+				if ($this->upload->do_upload('foto')) {
+					$upload_data = $this->upload->data();
+
+					// Get old photo data
+					$old_data = $this->petugas->getById($id_petugas);
+
+					// Delete old photo if exists
+					if (!empty($old_data['foto']) && file_exists('./assets/img/' . $old_data['foto'])) {
+						unlink('./assets/img/' . $old_data['foto']);
 					}
 
-					// Tambahkan foto baru ke data
-					$data['foto'] = $new_foto;
+					$data['foto'] = $upload_data['file_name'];
+				} else {
+					// Log upload error
+					$error = $this->upload->display_errors('', '');
+					error_log('Upload error: ' . $error);
+
+					// Display error to user
+					$this->session->set_flashdata('error', 'Error uploading file: ' . $error);
+					redirect("PetugasController/Edit/{$id_petugas}");
+					return;
 				}
 			}
 
-			// Update data di database
-			$this->petugas->update($id_petugas, $data);
+			// Update data
+			$result = $this->petugas->update($id_petugas, $data);
 
-			// Set flashdata dan redirect
+
 			$this->session->set_flashdata('success', 'Data berhasil diperbarui.');
+
 			redirect('PetugasController/index');
 		}
 	}
+
 
 	public function deletePetugas($id_petugas)
 	{
