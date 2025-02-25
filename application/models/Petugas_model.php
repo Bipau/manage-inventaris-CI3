@@ -58,6 +58,11 @@ class Petugas_model extends CI_Model
 	{
 		return $this->db->delete('petugas', ['id_petugas' => $id_petugas]);
 	}
+	public function cek_login($username) {
+        return $this->db->get_where('petugas', ['username' => $username])->row();
+    }
+
+	
 
 	// ------------------------------------------------------------------------
 
